@@ -3,8 +3,10 @@ const express = require('express')
 const app = express()
 const port = process.env.PORT || 5000
 const bodyParser = require('body-parser')
-const dal = require('./dal')
-const nodeHTTPError = require('node-http-error')
+const { getInstrument, addInstrument } = require('./dal')
+const NodeHTTPError = require('node-http-error')
+const { propOr, isEmpty } = require('ramda')
+
 app.use(bodyParser.json())
 
 app.get('/', function(req, res, next) {
@@ -13,12 +15,34 @@ app.get('/', function(req, res, next) {
 
 app.get('/instruments/:instrumentID', function(req, res, next) {
   const instrumentID = req.params.instrumentID
-  dal.getInstrument(instrumentID, function(err, data) {
+  getInstrument(instrumentID, function(err, data) {
     if (err) {
-      next(new nodeHTTPError(err.status, err.message, err))
+      next(new NodeHTTPError(err.status, err.message, err))
       return
     }
     res.status(200).send(data)
+  })
+})
+
+app.post('/instruments', function(req, res, next) {
+  const newInstrument = propOr({}, 'body', req)
+
+  console.log('instrument', newInstrument)
+
+  if (isEmpty(newInstrument)) {
+    next(new NodeHTTPError(400, 'missing instrument in body.'))
+  }
+
+  // TODO: Check required
+  // TODO: Pick required
+
+  addInstrument(newInstrument, function(err, data) {
+    if (err) {
+      next(
+        new NodeHTTPError(err.status, err.message, { max: 'is the coolest' })
+      )
+    }
+    res.status(201).send(data)
   })
 })
 
